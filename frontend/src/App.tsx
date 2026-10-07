@@ -14,17 +14,33 @@ function Protected({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, demo } = useAuth();
 
   return (
     <Routes>
       <Route
         path="/login"
-        element={loading ? <div className="spinner" /> : user ? <Navigate to="/" replace /> : <LoginPage />}
+        element={
+          demo || loading ? (
+            loading ? <div className="spinner" /> : <Navigate to="/" replace />
+          ) : user ? (
+            <Navigate to="/" replace />
+          ) : (
+            <LoginPage />
+          )
+        }
       />
       <Route
         path="/register"
-        element={loading ? <div className="spinner" /> : user ? <Navigate to="/" replace /> : <RegisterPage />}
+        element={
+          demo || loading ? (
+            loading ? <div className="spinner" /> : <Navigate to="/" replace />
+          ) : user ? (
+            <Navigate to="/" replace />
+          ) : (
+            <RegisterPage />
+          )
+        }
       />
       <Route
         path="/"

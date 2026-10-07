@@ -1,11 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { demoApi } from "../demo/demoStore";
 import type { BoardColumns, Task, TaskStatus } from "../types";
+
+const DEMO = demoApi.isEnabled();
 
 export function useBoardTasks(boardId: number) {
   return useQuery({
     queryKey: ["tasks", boardId],
-    queryFn: async () => (await api.get<BoardColumns>(`/boards/${boardId}/tasks`)).data,
+    queryFn: async () =>
+      DEMO
+        ? demoApi.getTasks(boardId)
+        : (await api.get<BoardColumns>(`/boards/${boardId}/tasks`)).data,
     enabled: Number.isFinite(boardId),
   });
 }
@@ -19,7 +25,10 @@ export function useCreateTask(boardId: number) {
       status: TaskStatus;
       due_date?: string | null;
       assignee_id?: number | null;
-    }) => (await api.post<Task>(`/boards/${boardId}/tasks`, payload)).data,
+    }) =>
+      DEMO
+        ? demoApi.createTask(boardId, payload)
+        : (await api.post<Task>(`/boards/${boardId}/tasks`, payload)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", boardId] }),
   });
 }
@@ -28,13 +37,14 @@ export function useMoveTask(boardId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { taskId: number; status: TaskStatus; position: number }) =>
-      (
-        await api.post<Task>(`/boards/${boardId}/tasks/${payload.taskId}/move`, {
-          status: payload.status,
-          position: payload.position,
-        })
-      ).data,
-    // Re-sync from the authoritative server state after a move.
+      DEMO
+        ? demoApi.moveTask(boardId, payload.taskId, payload.status, payload.position)
+        : (
+            await api.post<Task>(`/boards/${boardId}/tasks/${payload.taskId}/move`, {
+              status: payload.status,
+              position: payload.position,
+            })
+          ).data,
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks", boardId] }),
   });
 }
@@ -45,7 +55,10 @@ export function useUpdateTask(boardId: number) {
     mutationFn: async (payload: {
       taskId: number;
       data: Partial<Pick<Task, "title" | "description" | "due_date" | "assignee_id">>;
-    }) => (await api.patch<Task>(`/boards/${boardId}/tasks/${payload.taskId}`, payload.data)).data,
+    }) =>
+      DEMO
+        ? demoApi.updateTask(boardId, payload.taskId, payload.data)
+        : (await api.patch<Task>(`/boards/${boardId}/tasks/${payload.taskId}`, payload.data)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", boardId] }),
   });
 }
@@ -53,8 +66,13 @@ export function useUpdateTask(boardId: number) {
 export function useDeleteTask(boardId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (taskId: number) =>
-      await api.delete(`/boards/${boardId}/tasks/${taskId}`),
+    mutationFn: async (taskId: number) => {
+      if (DEMO) {
+        demoApi.deleteTask(boardId, taskId);
+        return;
+      }
+      await api.delete(`/boards/${boardId}/tasks/${taskId}`);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", boardId] }),
   });
 }

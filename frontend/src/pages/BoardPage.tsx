@@ -11,6 +11,7 @@ import {
 } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
 import TopBar from "../components/TopBar";
+import { useAuth } from "../auth/AuthContext";
 import Column from "../components/Column";
 import TaskCard from "../components/TaskCard";
 import TaskModal, { TaskDraft } from "../components/TaskModal";
@@ -47,9 +48,11 @@ export default function BoardPage() {
   const [taskModal, setTaskModal] = useState<{ mode: "create" | "edit"; status?: TaskStatus; task?: Task } | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [connected, setConnected] = useState(false);
+  const { demo } = useAuth();
 
   // Real-time: any task.* event just refetches the board's tasks so every
   // connected member converges on the same authoritative state.
+  // In demo mode this is a no-op (no backend / WebSocket).
   useBoardSocket(Number.isFinite(boardId) ? boardId : null, () => {
     qc.invalidateQueries({ queryKey: ["tasks", boardId] });
     setConnected(true);
@@ -162,7 +165,7 @@ export default function BoardPage() {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <span className="live-badge">
               <span className="live-dot" />
-              {connected ? "Live" : "Connecting…"}
+              {demo ? "Demo mode" : connected ? "Live" : "Connecting…"}
             </span>
             <button className="btn" onClick={() => setShowMembers(true)}>
               👥 Members {board ? `(${board.members.length})` : ""}

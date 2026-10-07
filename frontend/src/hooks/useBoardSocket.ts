@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { boardSocketUrl } from "../api/client";
+import { demoApi } from "../demo/demoStore";
 
 export interface SocketEvent {
   event: "task.created" | "task.updated" | "task.moved" | "task.deleted";
@@ -10,6 +11,8 @@ export interface SocketEvent {
  * Subscribe to a board's real-time event stream. The handler fires for every
  * task.* event broadcast by the server, so all connected members stay in sync.
  * Includes a simple auto-reconnect with backoff.
+ *
+ * In demo mode (no backend) there is no WebSocket, so this is a no-op.
  */
 export function useBoardSocket(
   boardId: number | null,
@@ -19,7 +22,7 @@ export function useBoardSocket(
   handlerRef.current = onEvent;
 
   useEffect(() => {
-    if (boardId == null) return;
+    if (boardId == null || demoApi.isEnabled()) return;
 
     let ws: WebSocket | null = null;
     let closed = false;

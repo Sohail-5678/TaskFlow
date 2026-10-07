@@ -24,6 +24,13 @@
 
 TaskFlow is a team collaboration platform where members create **boards**, add **tasks**, assign teammates, set **due dates**, and drag work across **To Do → In Progress → Done** columns. Every change is pushed to all connected members **instantly over WebSockets**, so the board stays in sync without a refresh.
 
+> **🔎 Live demo runs in "demo mode."** The public link at
+> [taskflow-dv.vercel.app](https://taskflow-dv.vercel.app) is a **frontend-only** build that
+> stores data in your browser (localStorage), so you can try boards and drag-and-drop
+> instantly with no login and no backend. The moment the frontend is pointed at a running
+> API (`VITE_API_URL`), it automatically switches to the **full stack** — JWT auth, RBAC,
+> PostgreSQL, and real-time WebSocket sync — all of which live in [`backend/`](backend/).
+
 This project is built to showcase production-grade full-stack engineering end to end:
 
 | Resume Claim | Where It Lives |

@@ -11,7 +11,7 @@ function initials(name: string): string {
 }
 
 export default function TopBar() {
-  const { user, logout } = useAuth();
+  const { user, logout, demo } = useAuth();
   return (
     <div className="topbar">
       <Link to="/" className="brand">
@@ -25,7 +25,7 @@ export default function TopBar() {
               {initials(user.full_name)}
             </span>
             <button className="btn btn-ghost btn-sm" onClick={logout}>
-              Sign out
+              {demo ? "Reset demo" : "Sign out"}
             </button>
           </>
         )}

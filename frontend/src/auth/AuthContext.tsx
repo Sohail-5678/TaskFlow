@@ -8,11 +8,13 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { api } from "../api/client";
+import { demoApi } from "../demo/demoStore";
 import type { AuthResponse, User } from "../types";
 
 interface AuthState {
   user: User | null;
   loading: boolean;
+  demo: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, fullName: string, password: string) => Promise<void>;
   logout: () => void;
@@ -21,10 +23,17 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const demo = demoApi.isEnabled();
+  const [user, setUser] = useState<User | null>(demo ? demoApi.currentUser() : null);
+  const [loading, setLoading] = useState(!demo);
 
   useEffect(() => {
+    // Demo mode: no backend, auto sign-in as the demo user.
+    if (demo) {
+      setUser(demoApi.currentUser());
+      setLoading(false);
+      return;
+    }
     const token = localStorage.getItem("taskflow_token");
     if (!token) {
       setLoading(false);
@@ -35,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((res) => setUser(res.data))
       .catch(() => localStorage.removeItem("taskflow_token"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [demo]);
 
   const persist = useCallback((data: AuthResponse) => {
     localStorage.setItem("taskflow_token", data.access_token);
@@ -63,13 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // In demo mode there's nothing to sign out of; reset the demo data instead.
+    if (demo) {
+      demoApi.reset();
+      setUser(demoApi.currentUser());
+      location.href = "/";
+      return;
+    }
     localStorage.removeItem("taskflow_token");
     setUser(null);
-  }, []);
+  }, [demo]);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout]
+    () => ({ user, loading, demo, login, register, logout }),
+    [user, loading, demo, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
