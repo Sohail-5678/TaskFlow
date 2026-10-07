@@ -1,0 +1,60 @@
+name: Deploy frontend to Vercel
+
+# Optional CLI-based deploy. The simplest path is to import the repo in the
+# Vercel dashboard (Root Directory = frontend) and let Vercel auto-deploy on
+# push — that requires no secrets and stays on the free Hobby tier.
+#
+# This workflow is here for teams that prefer deploying from CI. It needs
+# three repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/vercel-frontend.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — skip if Vercel is not configured
+        id: guard
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Vercel secrets not set; skipping CLI deploy (use dashboard auto-deploy instead)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        if: steps.guard.outputs.skip != 'true'
+        run: npm i -g vercel@latest
+
+      - name: Pull Vercel environment
+        if: steps.guard.outputs.skip != 'true'
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      - name: Build
+        if: steps.guard.outputs.skip != 'true'
+        run: vercel build --prod --token=$VERCEL_TOKEN
+
+      - name: Deploy
+        if: steps.guard.outputs.skip != 'true'
+        run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN

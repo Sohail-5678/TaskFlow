@@ -1,0 +1,47 @@
+"""Database engine, session factory, and declarative base.
+
+Uses SQLAlchemy 2.0 async. Works with both SQLite (local, $0) and
+PostgreSQL (production) via the DATABASE_URL setting.
+"""
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
+
+from app.core.config import settings
+
+
+class Base(DeclarativeBase):
+    """Declarative base for all ORM models."""
+
+
+# SQLite needs check_same_thread disabled for async use; Postgres ignores it.
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=False,
+    future=True,
+    pool_pre_ping=True,
+    connect_args=connect_args,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency that yields a database session."""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

@@ -1,0 +1,45 @@
+name: Deploy backend to Azure App Service
+
+# Deploys the FastAPI app to Azure App Service (Linux, free F1) on every
+# push to main. Set the AZURE_WEBAPP_PUBLISH_PROFILE secret in the repo
+# (Azure Portal → App Service → Get publish profile) and the app name below.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/azure-backend.yml"
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: taskflow-api   # change to your App Service name
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Zip artifact for deployment
+        run: cd backend && zip -r ../release.zip . -x ".venv/*" "*.db" "tests/*"
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: release.zip
+          startup-command: "uvicorn app.main:app --host 0.0.0.0 --port 8000"

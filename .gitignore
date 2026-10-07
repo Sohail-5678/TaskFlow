@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+*.sqlite3
+.pytest_cache/
+.mypy_cache/
+
+# Env
+.env
+.env.local
+*.env.local
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Vercel
+.vercel
+
+# OS / editors
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Build artifacts
+release.zip
